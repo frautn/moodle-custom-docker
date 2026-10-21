@@ -42,16 +42,34 @@ grep 'release = ' /mnt/data/moodle/public/version.php
 ```
 
 If the checkout is source-only and lacks `vendor/autoload.php`, install its
-locked production dependencies using Composer, following Moodle's installation
-instructions, before starting. Do not mount an incomplete checkout.
+locked production dependencies before starting. The runtime image includes
+Composer, so host PHP and Composer installations are not needed. Run the
+following from this repository as the checkout's owner:
+
+```sh
+docker compose build --pull
+docker run --rm \
+    --user "$(id -u):$(id -g)" \
+    --env COMPOSER_HOME=/tmp/composer \
+    --mount type=bind,source=/mnt/data/moodle,target=/var/www/html \
+    --entrypoint composer \
+    moodle-custom:5.3 \
+    install --no-dev --optimize-autoloader --no-interaction
+```
+
+This one-off container can write to the checkout and uses the same PHP
+extensions as Moodle, but receives no database credentials or data mounts.
+The running web and cron services keep their read-only source mounts.
+Do not mount an incomplete checkout.
 
 Create the data directories. On the Debian-based PHP image, `www-data` is
-UID/GID 33. These commands are for **new directories**; do not blindly change
-ownership or initialize over existing production data.
+UID/GID 33; on `postgres:17-bookworm`, `postgres` is UID/GID 999. These commands
+are for **new directories**; do not blindly change ownership or initialize
+over existing production data.
 
 ```sh
 sudo install -d -o 33 -g 33 -m 0770 /mnt/data/moodledata
-sudo install -d -m 0700 /mnt/data/postgres
+sudo install -d -o 999 -g 999 -m 0700 /mnt/data/postgres
 cp .env.example .env
 chmod 600 .env
 openssl rand -hex 32
@@ -99,6 +117,25 @@ curl --fail http://127.0.0.1:8081/healthz
 
 The health endpoint checks Apache, not Moodle's database schema or installation
 status. It is blocked by the public Nginx configuration.
+
+If Compose reports `dependency db failed to start`, inspect
+`docker compose logs --tail=100 db`. A repeated
+`mkdir: cannot create directory '/var/lib/postgresql/data': Permission denied`
+can occur if `/mnt/data/postgres` was created as root with mode `0700`.
+The entrypoint changes ownership of the `pgdata` subdirectory, but PostgreSQL
+also needs to traverse its parent after switching to UID 999. On the standard
+rootful Docker Engine setup described here, fix the parent directory only,
+without deleting or recursively changing database files:
+
+```sh
+sudo chown 999:999 /mnt/data/postgres
+docker compose restart db
+docker compose up -d db moodle
+docker compose ps
+```
+
+Rootless Docker or user-namespace remapping requires host ownership matching
+the mapped container UID instead.
 
 ## 3. Configure the host Nginx
 

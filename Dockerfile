@@ -13,6 +13,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     && printf 'ServerTokens Prod\nServerSignature Off\n' > /etc/apache2/conf-available/moodle-security.conf \
     && a2enconf moodle-security
 
+COPY --from=composer:2 /usr/bin/composer /usr/local/bin/composer
+
 COPY docker/php.ini /usr/local/etc/php/conf.d/moodle.ini
 COPY docker/apache.conf /etc/apache2/sites-available/000-default.conf
 COPY docker/cron.sh /usr/local/bin/moodle-cron
