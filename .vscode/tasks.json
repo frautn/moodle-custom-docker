@@ -1,0 +1,12 @@
+{
+	"version": "2.0.0",
+	"tasks": [
+		{
+			"label": "Build production Moodle image",
+			"type": "shell",
+			"command": "docker build --pull -t moodle-custom:5.3 .",
+			"problemMatcher": [],
+			"group": "build"
+		}
+	]
+}
