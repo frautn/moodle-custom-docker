@@ -190,8 +190,8 @@ For a migrated site, use the upgrade workflow below instead.
 The cron worker runs as `www-data`, never overlaps its own invocations, and
 reports task failures to container logs. It honors Moodle's cron keep-alive
 setting (which may poll for tasks within one invocation); shorter invocations
-are paced to once per minute. On shutdown it allows the current invocation to
-finish, up to the five-minute Compose stop timeout. In Moodle, confirm
+are paced to once every five minutes. On shutdown it allows the current
+invocation to finish, up to the five-minute Compose stop timeout. In Moodle, confirm
 **Site administration > Server > Tasks > Scheduled tasks** shows recent runs.
 Configure SMTP, backups, timezone, authentication, and other site settings in
 Moodle before launch. Test a login, an upload near the required size, and a

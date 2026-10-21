@@ -12,8 +12,8 @@ while true; do
         printf 'Moodle cron failed (exit %s); retrying on the next cycle.\n' "$status" >&2
     fi
     elapsed=$(($(date +%s) - started))
-    if [ "$elapsed" -lt 60 ]; then
-        sleep "$((60 - elapsed))" &
+    if [ "$elapsed" -lt 300 ]; then
+        sleep "$((300 - elapsed))" &
         wait "$!"
     fi
 done
