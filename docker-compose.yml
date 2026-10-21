@@ -1,0 +1,36 @@
+services:
+  db:
+    image: postgres:16
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      PGDATA: /var/lib/postgresql/data/pgdata
+    volumes:
+      - /mnt/data/postgres:/var/lib/postgresql/data
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U $${POSTGRES_USER} -d $${POSTGRES_DB}"]
+      interval: 10s
+      timeout: 5s
+      retries: 10
+
+  moodle: &moodle
+    build: .
+    image: moodle-custom:5.3
+    restart: unless-stopped
+    depends_on:
+      db:
+        condition: service_healthy
+    env_file: .env
+    ports:
+      - "127.0.0.1:8081:80"
+    volumes:
+      - /mnt/data/moodle:/var/www/html:ro
+      - ./config.php:/var/www/html/config.php:ro
+      - /mnt/data/moodledata:/var/www/moodledata
+
+  cron:
+    <<: *moodle
+    ports: []
+    command: moodle-cron
+    depends_on:
+      - moodle
